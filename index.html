@@ -1,0 +1,250 @@
+<!-- index.html: GoF デザインパターン単語帳 (オフラインで動作) -->
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GoF Design Patterns Flashcards</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React 18 + ReactDOM (開発版) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel で JSX をブラウザ変換 -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-start justify-center p-6">
+    <div id="root" class="w-full max-w-7xl"></div>
+
+    <!-- アプリ本体 (JSX) -->
+    <script type="text/babel">
+        /*************************************************
+               * パターン定義（名称→説明→実装例）
+                      *************************************************/
+        const patterns = [
+            {
+                en: "Singleton",
+                jp: "シングルトン",
+                purpose:
+                    "クラスのインスタンスを 1 つに制限し、グローバルなアクセス手段を提供する。",
+                analogy: "大統領は 1 人しか存在しない。",
+                example: `public class Singleton {\n    private static final Singleton INSTANCE = new Singleton();\n    private Singleton() {}\n    public static Singleton getInstance() {\n        return INSTANCE;\n    }\n}`,
+            },
+            {
+                en: "Prototype",
+                jp: "プロトタイプ",
+                purpose: "既存オブジェクトを複製して新しいインスタンスを生成する。",
+                analogy: "コピー機で書類を複写する。",
+                example: `class Sheep implements Cloneable {\n    private String name;\n    Sheep(String n) { this.name = n; }\n    @Override public Sheep clone() throws CloneNotSupportedException {\n        return (Sheep) super.clone();\n    }\n}`,
+            },
+            {
+                en: "Factory Method",
+                jp: "ファクトリーメソッド",
+                purpose: "生成処理をサブクラスに委譲し、依存を弱める。",
+                analogy: "工場ラインが具体的製品を作る。",
+                example: `abstract class Dialog {\n    public void renderWindow() {\n        Button ok = createButton();\n        ok.render();\n    }\n    protected abstract Button createButton();\n}\nclass WindowsDialog extends Dialog {\n    protected Button createButton() { return new WindowsButton(); }\n}`,
+            },
+            {
+                en: "Abstract Factory",
+                jp: "抽象ファクトリー",
+                purpose: "関連オブジェクト群をまとめて生成し、具体的クラスを隠蔽する。",
+                analogy: "家具店でテーブルと椅子をセット購入する。",
+                example: `interface GuiFactory { Button createButton(); Checkbox createCheckbox(); }\nclass MacFactory implements GuiFactory {\n    public Button createButton() { return new MacButton(); }\n    public Checkbox createCheckbox() { return new MacCheckbox(); }\n}`,
+            },
+            {
+                en: "Builder",
+                jp: "ビルダー",
+                purpose: "複雑なオブジェクトを段階的に組み立てる。",
+                analogy: "コース料理を順番に提供する。",
+                example: `class Meal { /* ... */ }\nclass MealBuilder {\n    private Meal meal = new Meal();\n    MealBuilder addSoup() { /*...*/ return this; }\n    MealBuilder addSteak() { /*...*/ return this; }\n    Meal build() { return meal; }\n}`,
+            },
+            {
+                en: "Adapter",
+                jp: "アダプター",
+                purpose: "互換性のないインターフェースを変換して接続する。",
+                analogy: "電源プラグ変換アダプタ。",
+                example: `class EuroPlug { void connectEU(); }\nclass JpSocket { void connectJP(); }\nclass PlugAdapter extends EuroPlug {\n    private JpSocket socket;\n    PlugAdapter(JpSocket s){ this.socket = s; }\n    void connectEU(){ socket.connectJP(); }\n}`,
+            },
+            {
+                en: "Bridge",
+                jp: "ブリッジ",
+                purpose: "抽象と実装を分離し、それぞれ独立に拡張可能にする。",
+                analogy: "リモコンが複数機器を操作。",
+                example: `interface Device { void on(); void off(); }\nclass TV implements Device { public void on(){} public void off(){} }\nabstract class Remote { protected Device d; Remote(Device d){this.d=d;} abstract void togglePower(); }\nclass BasicRemote extends Remote { void togglePower(){ /* ... */ } }`,
+            },
+            {
+                en: "Composite",
+                jp: "コンポジット",
+                purpose: "木構造で個々と集合を同一視して操作する。",
+                analogy: "フォルダとファイルの階層。",
+                example: `interface Graphic { void draw(); }\nclass Dot implements Graphic { public void draw(){} }\nclass CompositeGraphic implements Graphic { List<Graphic> children = new ArrayList<>();\n    public void draw(){ for(Graphic g: children) g.draw(); } }`,
+            },
+            {
+                en: "Decorator",
+                jp: "デコレーター",
+                purpose: "動的に機能追加して挙動を拡張する。",
+                analogy: "ピザにトッピングを重ねる。",
+                example: `interface Coffee { int cost(); }\nclass BasicCoffee implements Coffee { public int cost(){ return 200; } }\nclass MilkDecorator implements Coffee { Coffee base; MilkDecorator(Coffee c){base=c;} public int cost(){ return base.cost()+50; } }`,
+            },
+            {
+                en: "Facade",
+                jp: "ファサード",
+                purpose: "複雑なサブシステムに簡易窓口を提供する。",
+                analogy: "コンビニ店員が各種手続きを一括。",
+                example: `class HomeTheaterFacade { DVD dvd; Projector pj; void watchMovie(){ pj.on(); dvd.play(); } }`,
+            },
+            {
+                en: "Flyweight",
+                jp: "フライウェイト",
+                purpose: "共有インスタンスでメモリを節約する。",
+                analogy: "フォントの字形を再利用。",
+                example: `class Glyph { char c; Glyph(char c){this.c=c;} }\nclass GlyphFactory { Map<Character,Glyph> pool = new HashMap<>();\n    Glyph get(char c){ return pool.computeIfAbsent(c, k -> new Glyph(k)); } }`,
+            },
+            {
+                en: "Proxy",
+                jp: "プロキシ",
+                purpose: "アクセス制御や遅延生成のための代理を置く。",
+                analogy: "弁護士が依頼人の代理で交渉。",
+                example: `interface Image { void display(); }\nclass RealImage implements Image { public void display(){} }\nclass LazyImage implements Image { private RealImage real; public void display(){ if(real==null) real = new RealImage(); real.display(); } }`,
+            },
+            {
+                en: "Chain of Responsibility",
+                jp: "責任連鎖",
+                purpose: "要求を連続する処理者に渡し、処理者が責任を取るまで進む。",
+                analogy: "社内稟議の承認フロー。",
+                example: `abstract class Handler { Handler next; void setNext(Handler n){next=n;} void handle(int lvl){ if(can(lvl)) process(); else if(next!=null) next.handle(lvl); } abstract boolean can(int); abstract void process(); }`,
+            },
+            {
+                en: "Command",
+                jp: "コマンド",
+                purpose: "操作要求をオブジェクトとしてカプセル化する。",
+                analogy: "レストランのオーダー票。",
+                example: `interface Command { void execute(); }\nclass LightOn implements Command { Light l; LightOn(Light l){this.l=l;} public void execute(){ l.on(); } }\nclass Invoker { Queue<Command> q = new LinkedList<>(); void run(){ if(!q.isEmpty()) q.poll().execute(); } }`,
+            },
+            {
+                en: "Interpreter",
+                jp: "インタープリター",
+                purpose: "文法規則をクラスで表し、式を解釈する。",
+                analogy: "外国語の通訳。",
+                example: `interface Expr { int eval(); }\nclass Num implements Expr { int v; Num(int v){this.v=v;} int eval(){ return v; } }\nclass Add implements Expr { Expr l,r; Add(Expr l,Expr r){this.l=l;this.r=r;} int eval(){ return l.eval()+r.eval(); } }`,
+            },
+            {
+                en: "Iterator",
+                jp: "イテレーター",
+                purpose: "集合の要素を順にアクセスする方法を提供。",
+                analogy: "テレビのチャンネルを順に回す。",
+                example: `Iterator<String> it = list.iterator(); while(it.hasNext()) System.out.println(it.next());`,
+            },
+            {
+                en: "Mediator",
+                jp: "メディエーター",
+                purpose: "オブジェクト間通信を仲介役に集中させる。",
+                analogy: "航空管制塔が飛行機を調整。",
+                example: `class ChatRoom { void showMsg(User u,String msg){ /* broadcast */ } }\nclass User { ChatRoom room; String name; User(String name, ChatRoom r){this.name=name;this.room=r;} void send(String msg){ room.showMsg(this,msg); } }`,
+            },
+            {
+                en: "Memento",
+                jp: "メメント",
+                purpose: "オブジェクト状態を外部に保存し、後で復元する。",
+                analogy: "ゲームのセーブデータ。",
+                example: `class Snapshot { int hp; Snapshot(int hp){this.hp=hp;} }\nclass Player { int hp; Snapshot save(){ return new Snapshot(hp);} void restore(Snapshot s){ hp=s.hp; } }`,
+            },
+            {
+                en: "Observer",
+                jp: "オブザーバー",
+                purpose: "状態変化をリスナーに通知し同期する。",
+                analogy: "SNSフォロワーへの更新通知。",
+                example: `interface Observer { void update(); }\nclass Subject { List<Observer> obs = new ArrayList<>(); void attach(Observer o){ obs.add(o);} void notifyAllObs(){ for(Observer o:obs) o.update(); } }`,
+            },
+            {
+                en: "State",
+                jp: "ステート",
+                purpose: "状態によって振る舞いを切り替える。",
+                analogy: "自販機が投入金額で挙動を変える。",
+                example: `interface State { void insertCoin(); void push(); }\nclass VendingMachine { State noCoin = new NoCoin(this); State hasCoin = new HasCoin(this); State state=noCoin; void setState(State s){state=s;} /* ... */ }\nclass NoCoin implements State { VendingMachine vm; NoCoin(VendingMachine vm){this.vm=vm;} public void insertCoin(){ vm.setState(vm.hasCoin);} public void push(){} }`,
+            },
+            {
+                en: "Strategy",
+                jp: "ストラテジー",
+                purpose: "アルゴリズムを切り替え可能にする。",
+                analogy: "ナビアプリが最短・最速ルートを選択。",
+                example: `interface SortStrategy { void sort(int[] a); }\nclass QuickSort implements SortStrategy { public void sort(int[] a){ /* quick sort */ } }\nclass Context { SortStrategy s; void setStrategy(SortStrategy s){this.s=s;} void execute(int[] a){ s.sort(a);} }`,
+            },
+            {
+                en: "Template Method",
+                jp: "テンプレートメソッド",
+                purpose: "処理骨組みを親で定義し、一部を子クラス任せにする。",
+                analogy: "レシピの手順書。",
+                example: `abstract class Game { final void play(){ init(); startPlay(); endPlay(); } void init(){} abstract void startPlay(); void endPlay(){} }\nclass Soccer extends Game { void startPlay(){ /* kick off */ } }`,
+            },
+            {
+                en: "Visitor",
+                jp: "ビジター",
+                purpose: "データ構造と処理を分離し、新しい処理を追加しやすくする。",
+                analogy: "監査人が各部署を訪問して調査。",
+                example: `interface Visitor { void visit(Book b); void visit(CD c); }\ninterface Item { void accept(Visitor v); }\nclass Book implements Item { void accept(Visitor v){ v.visit(this); } }\nclass PriceVisitor implements Visitor { public void visit(Book b){} public void visit(CD c){} }`,
+            },
+        ];
+
+        /*************************************************
+               * React Components
+                      *************************************************/
+        const { useState } = React;
+
+        function Flashcard({ pattern }) {
+            const [page, setPage] = useState(0); // 0:name 1:description 2:code
+            const nextPage = () => setPage((page + 1) % 3);
+
+            return (
+                <div
+                    className="bg-white rounded-2xl shadow-lg p-4 h-72 flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-105"
+                    onClick={nextPage}
+                >
+                    {page === 0 && (
+                        <>
+                            <span className="text-sm text-indigo-600 font-medium mb-1">{pattern.jp}</span>
+                            <span className="text-lg font-semibold">{pattern.en}</span>
+                        </>
+                    )}
+                    {page === 1 && (
+                        <>
+                            <p className="text-sm font-medium mb-2 leading-normal">
+                                {pattern.purpose}
+                            </p>
+                            <p className="text-xs text-gray-600">{pattern.analogy}</p>
+                        </>
+                    )}
+                    {page === 2 && (
+                        <pre className="text-[10px] text-left overflow-auto whitespace-pre-wrap max-h-full w-full">
+                            {pattern.example}
+                        </pre>
+                    )}
+                </div>
+            );
+        }
+
+        function App() {
+            return (
+                <div className="flex flex-col items-center gap-6 w-full">
+                    <h1 className="text-3xl font-bold">GoF デザインパターン暗記カード</h1>
+                    <p className="text-gray-600 text-sm text-center max-w-xl mb-2">
+                        カードをクリックして「名称 → 説明 → Java 実装例」を巡回表示
+                    </p>
+                    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 w-full">
+                        {patterns.map((p, idx) => (
+                            <Flashcard pattern={p} key={idx} />
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
+-->
